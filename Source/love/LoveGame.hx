@@ -145,50 +145,46 @@ class LoveGame {
 
     // The default LOVE 11.4 main loop
     public function run():Void->Dynamic {
-        if (Love.load != null) {
-            Love.load(ArgModule.parseGameArguments(Lua.arg), Lua.arg);
-        }
+        if (Love.load != null) Love.load(ArgModule.parseGameArguments(Lua.arg), Lua.arg);
 
         // We don't want the first frame's dt to include time taken by love.load.
-        TimerModule.step();
+        if (TimerModule != null) TimerModule.step();
 
         var dt:Float = 0;
 
         // Main loop time.
         return () -> {
             // Process events.
-            EventModule.pump();
-            for (event in pollEvents()) {
-                if (event.name == "quit") {
-                    if (Love.quit == null || !Love.quit()) {
-                        return event.a != null ? event.a : 0;
+            if (EventModule != null) {
+                EventModule.pump();
+                for (event in pollEvents()) {
+                    if (event.name == "quit") {
+                        if (Love.quit == null || !Love.quit()) {
+                            return event.a != null ? event.a : 0;
+                        }
                     }
+                    Lua.rawget(Love.handlers, event.name)(event.a, event.b, event.c, event.d, event.e, event.f);
                 }
-                Lua.rawget(Love.handlers, event.name)(event.a, event.b, event.c, event.d, event.e, event.f);
             }
 
             // Update dt, as we'll be passing it to update
-            dt = TimerModule.step();
+            if (TimerModule != null) dt = TimerModule.step();
 
             // Call update and draw
-            if (Love.update != null) {
-                Love.update(dt);
-            }
+            if (Love.update != null) Love.update(dt); // will pass 0 if love.timer is disabled
 
-            if (GraphicsModule.isActive()) {
+            if (GraphicsModule != null && GraphicsModule.isActive()) {
                 GraphicsModule.origin();
 
                 var bgColor = GraphicsModule.getBackgroundColor();
                 GraphicsModule.clear(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
-                if (Love.draw != null) {
-                    Love.draw();
-                }
+                if (Love.draw != null) Love.draw();
 
                 GraphicsModule.present();
             }
 
-            TimerModule.sleep(0.001);
+            if (TimerModule != null) TimerModule.sleep(0.001);
 
             return null;
         }
@@ -206,6 +202,10 @@ class LoveGame {
 
         errorPrinter(msgStr, layer + 1);
 
+        if (WindowModule == null || GraphicsModule == null || EventModule == null) {
+            return null;
+        }
+
         if (!GraphicsModule.isCreated() || !WindowModule.isOpen()) {
             var result = Lua.pcall(WindowModule.setMode, 800, 600);
             if (!result.status || !result.value) {
@@ -214,17 +214,21 @@ class LoveGame {
         }
 
         // Reset state.
-        MouseModule.setVisible(true);
-        MouseModule.setGrabbed(false);
-        MouseModule.setRelativeMode(false);
-        if (MouseModule.isCursorSupported()) {
-            MouseModule.setCursor(null);
+        if (MouseModule != null) {
+            MouseModule.setVisible(true);
+            MouseModule.setGrabbed(false);
+            MouseModule.setRelativeMode(false);
+            if (MouseModule.isCursorSupported()) {
+                MouseModule.setCursor(null);
+            }
         }
-        var joysticks:Table<Int, Joystick> = cast JoystickModule.getJoysticks();
-        for (joystick in Table.toArray(joysticks)) {
-            joystick.setVibration();
+        if (JoystickModule != null) {
+            var joysticks:Table<Int, Joystick> = cast JoystickModule.getJoysticks();
+            for (joystick in Table.toArray(joysticks)) {
+                joystick.setVibration();
+            }
         }
-        AudioModule.stop();
+        if (AudioModule != null) AudioModule.stop();
 
         GraphicsModule.reset();
         var font = GraphicsModule.setNewFont(14);
@@ -266,9 +270,7 @@ class LoveGame {
         p = NativeStringTools.gsub(p, "%[string \"(.-)\"%]", "%1");
 
         var draw = () -> {
-            if (!GraphicsModule.isActive()) {
-                return;
-            }
+            if (!GraphicsModule.isActive()) return;
             var pos = 70;
             //  89/255, 157/255, 220/255  - The classic blue
             GraphicsModule.clear(255/255, 155/255, 221/255);
@@ -278,11 +280,14 @@ class LoveGame {
 
         var fullErrorText = p;
         var copyToClipboard = () -> {
+            if (SystemModule == null) return;
             SystemModule.setClipboardText(fullErrorText);
             p = p + "\nCopied to clipboard!";
         }
 
-        p = p + "\n\nPress Ctrl+C or tap to copy this error";
+        if (SystemModule != null) {
+            p = p + "\n\nPress Ctrl+C or tap to copy this error";
+        }
 
         return () -> {
 
@@ -315,7 +320,9 @@ class LoveGame {
 
             draw();
 
-            TimerModule.sleep(0.1);
+            if (TimerModule != null) {
+                TimerModule.sleep(0.1);
+            }
 
             return null;
         }
