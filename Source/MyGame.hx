@@ -1,4 +1,5 @@
-import love.timer.TimerModule;
+package;
+
 import love.graphics.GraphicsModule;
 import love.graphics.Image;
 import love.LoveGame;

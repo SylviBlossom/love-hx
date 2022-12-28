@@ -1,26 +1,23 @@
 package love;
 
+import lua.UserData;
+import love.joystick.JoystickHat;
+import love.joystick.GamepadButton;
+import love.keyboard.KeyConstant;
+import love.joystick.GamepadAxis;
 import love.event.EventPollResult;
 import love.filesystem.DroppedFile;
 import love.window.DisplayOrientation;
-import lua.Boot;
-import love.thread.ThreadModule;
-import lua.Thread;
 import lua.Os;
 import love.keyboard.KeyboardModule;
 import love.system.SystemModule;
-import lua.HaxeIterator;
 import love.audio.AudioModule;
 import love.joystick.Joystick;
 import love.joystick.JoystickModule;
 import love.mouse.MouseModule;
 import love.window.WindowModule;
 import lua.NativeStringTools;
-import lua.Debug;
 import love.graphics.GraphicsModule;
-import lua.PairTools;
-import lua.TableTools;
-import haxe.Rest;
 import lua.NativeIterator;
 import love.event.EventModule;
 import love.timer.TimerModule;
@@ -28,6 +25,7 @@ import love.arg.ArgModule;
 import lua.Lua;
 import lua.Table;
 import love.Love;
+import love.keyboard.Scancode;
 
 /**
     Optional base class for a LOVE game, providing simple overridable callbacks and helpful initialization.
@@ -74,6 +72,24 @@ class LoveGame {
         Love.mousepressed = (x, y, button, istouch, presses) -> mousePressed(cast x, cast y, cast button, istouch, cast presses);
         Love.mousereleased = (x, y, button, istouch, presses) -> mouseReleased(cast x, cast y, cast button, istouch, cast presses);
         Love.wheelmoved = (x, y) -> wheelMoved(cast x, cast y);
+
+        // Joystick callbacks
+
+        Love.gamepadaxis = (joystick, axis, value) -> gamepadAxis(joystick, axis, value);
+        Love.gamepadpressed = (joystick, button) -> gamepadPressed(joystick, button);
+        Love.gamepadreleased = (joystick, button) -> gamepadReleased(joystick, button);
+        Love.joystickadded = (joystick) -> joystickAdded(joystick);
+        Love.joystickaxis = (joystick, axis, value) -> joystickAxis(joystick, cast axis, value);
+        Love.joystickhat = (joystick, hat, direction) -> joystickHat(joystick, cast hat, direction);
+        Love.joystickpressed = (joystick, button) -> joystickPressed(joystick, cast button);
+        Love.joystickreleased = (joystick, button) -> joystickReleased(joystick, cast button);
+        Love.joystickremoved = (joystick) -> joystickRemoved(joystick);
+
+        // Touch callbacks
+
+        Love.touchmoved = (id, x, y, dx, dy, pressure) -> touchMoved(id, cast x, cast y, cast dx, cast dy, pressure);
+        Love.touchpressed = (id, x, y, dx, dy, pressure) -> touchPressed(id, cast x, cast y, cast dx, cast dy, pressure);
+        Love.touchreleased = (id, x, y, dx, dy, pressure) -> touchReleased(id, cast x, cast y, cast dx, cast dy, pressure);
     }
 
 
@@ -105,9 +121,9 @@ class LoveGame {
 
     // Keyboard callbacks
 
-    public function keyPressed(key:String, scancode:String, isRepeat:Bool) { }
+    public function keyPressed(key:KeyConstant, scancode:Scancode, isRepeat:Bool) { }
 
-    public function keyReleased(key:String, scancode:String) { }
+    public function keyReleased(key:KeyConstant, scancode:Scancode) { }
 
     public function textInput(text:String) { }
 
@@ -123,7 +139,33 @@ class LoveGame {
 
     public function wheelMoved(x:Int, y:Int) { }
 
+    // Joystick callbacks
 
+    public function gamepadAxis(joystick:Joystick, axis:GamepadAxis, value:Float) { }
+
+    public function gamepadPressed(joystick:Joystick, button:GamepadButton) { }
+
+    public function gamepadReleased(joystick:Joystick, button:GamepadButton) { }
+
+    public function joystickAdded(joystick:Joystick) { }
+
+    public function joystickAxis(joystick:Joystick, axis:Int, value:Float) { }
+
+    public function joystickHat(joystick:Joystick, hat:Int, direction:JoystickHat) { }
+
+    public function joystickPressed(joystick:Joystick, button:Int) { }
+
+    public function joystickReleased(joystick:Joystick, button:Int) { }
+
+    public function joystickRemoved(joystick:Joystick) { }
+
+    // Touch callbacks
+
+    public function touchMoved(id:UserData, x:Int, y:Int, dx:Int, dy:Int, pressure:Float) { }
+
+    public function touchPressed(id:UserData, x:Int, y:Int, dx:Int, dy:Int, pressure:Float) { }
+
+    public function touchReleased(id:UserData, x:Int, y:Int, dx:Int, dy:Int, pressure:Float) { }
 
 
     private function pollEvents():Array<EventPollResult> {
@@ -296,9 +338,9 @@ class LoveGame {
             for (event in pollEvents()) {
                 if (event.name == "quit") {
                     return 1;
-                } else if (event.name == "keypressed" && event.a == "escape") {
+                } else if (event.name == "keypressed" && event.a == KeyConstant.Escape) {
                     return 1;
-                } else if (event.name == "keypressed" && event.a == "c" && KeyboardModule.isDown("lctrl", "rctrl")) {
+                } else if (event.name == "keypressed" && event.a == KeyConstant.C && KeyboardModule.isDown(Lctrl, Rctrl)) {
                     copyToClipboard();
                 } else if (event.name == "touchpressed") {
                     var name = WindowModule.getTitle();
