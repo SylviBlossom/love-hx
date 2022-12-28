@@ -1,0 +1,10 @@
+# Not used for building, but for IDE code completion only
+
+--lua out.lua
+-D lua-ver=5.3
+-D lua-jit
+-D lua-vanilla
+--class-path LoveGen
+--class-path Source
+
+--library hxp
